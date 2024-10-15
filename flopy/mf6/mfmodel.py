@@ -1,6 +1,7 @@
 import inspect
 import os
 import sys
+import typing
 import warnings
 from typing import Optional, Union
 
@@ -14,6 +15,7 @@ from ..discretization.vertexgrid import VertexGrid
 from ..mbase import ModelInterface
 from ..utils import datautil
 from ..utils.check import mf6check
+from ._file_management import MFFileMgmt
 from .coordinates import modeldimensions
 from .data import mfdata, mfdatalist, mfstructure
 from .data.mfdatautil import DataSearchOutput, iterable
@@ -21,7 +23,6 @@ from .mfbase import (
     ExtFileAction,
     FlopyException,
     MFDataException,
-    MFFileMgmt,
     PackageContainer,
     PackageContainerType,
     ReadAsArraysException,
@@ -30,6 +31,9 @@ from .mfbase import (
 from .mfpackage import MFPackage
 from .utils.mfenums import DiscretizationType
 from .utils.output_util import MF6Output
+
+if typing.TYPE_CHECKING:
+    from .mfsimbase import MFSimulationBase
 
 
 class MFModel(ModelInterface):
@@ -72,7 +76,7 @@ class MFModel(ModelInterface):
 
     def __init__(
         self,
-        simulation,
+        simulation: "MFSimulationBase",
         model_type="gwf6",
         modelname="model",
         model_nam_file=None,
@@ -858,7 +862,7 @@ class MFModel(ModelInterface):
     @staticmethod
     def load_base(
         cls_child,
-        simulation,
+        simulation: "MFSimulationBase",
         structure,
         modelname="NewModel",
         model_nam_file="modflowtest.nam",

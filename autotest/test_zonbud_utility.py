@@ -281,7 +281,7 @@ def test_zonebudget_6(function_tmpdir, example_data_path):
 
     sim_ws = example_data_path / "mf6" / "test001e_UZF_3lay"
     sim = MFSimulation.load(sim_ws=sim_ws, exe_name=exe_name)
-    sim.simulation_data.mfpath.set_sim_path(function_tmpdir)
+    sim.set_sim_path(function_tmpdir)
     sim.write_simulation()
     success, _ = sim.run_simulation()
 
@@ -339,7 +339,7 @@ def test_zonebudget6_from_output_method(function_tmpdir, example_data_path):
 
     sim_ws = example_data_path / "mf6" / "test001e_UZF_3lay"
     sim = MFSimulation.load(sim_ws=sim_ws, exe_name=exe_name)
-    sim.simulation_data.mfpath.set_sim_path(function_tmpdir)
+    sim.set_sim_path(function_tmpdir)
     sim.write_simulation()
     success, _ = sim.run_simulation()
 

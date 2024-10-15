@@ -1,5 +1,6 @@
 import inspect
 import sys
+import typing
 from copy import deepcopy
 
 import numpy as np
@@ -11,10 +12,18 @@ from ..data.mfstructure import DataType, DatumType, MFDataStructure
 from ..mfbase import MFDataException, VerbosityLevel
 from .mfdatautil import MFComment, convert_data, to_string
 
+if typing.TYPE_CHECKING:
+    from ..mfsimbase import MFSimulationData
+
 
 class MFFileAccess:
     def __init__(
-        self, structure, data_dimensions, simulation_data, path, current_key
+        self,
+        structure,
+        data_dimensions,
+        simulation_data: "MFSimulationData",
+        path,
+        current_key,
     ):
         self.structure = structure
         self._data_dimensions = data_dimensions
@@ -146,9 +155,7 @@ class MFFileAccess:
 
     def _open_ext_file(self, fname, binary=False, write=False):
         model_dim = self._data_dimensions.package_dim.model_dim[0]
-        read_file = self._simulation_data.mfpath.resolve_path(
-            fname, model_dim.model_name
-        )
+        read_file = self._simulation_data.mfpath.resolve_path(fname)
         if write:
             options = "w"
         else:

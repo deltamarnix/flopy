@@ -1,6 +1,7 @@
 import inspect
 import os
 import sys
+import typing
 from copy import deepcopy
 from enum import Enum
 from shutil import copyfile
@@ -20,6 +21,9 @@ from ..data.mfstructure import DatumType, MFDataItemStructure
 from ..mfbase import MFDataException, VerbosityLevel
 from .mfdatautil import MFComment, convert_data, iterable
 from .mffileaccess import MFFileAccess, MFFileAccessArray, MFFileAccessList
+
+if typing.TYPE_CHECKING:
+    from ..mfsimbase import MFSimulationData
 
 
 class DataStorageType(Enum):
@@ -285,7 +289,7 @@ class DataStorage:
 
     def __init__(
         self,
-        sim_data,
+        sim_data: "MFSimulationData",
         model_or_sim,
         data_dimensions,
         get_file_entry,
@@ -1714,9 +1718,7 @@ class DataStorage:
                 for i, rp in enumerate(rp_l_r):
                     if rp != fp_rp_l[len(rp_l_r) - i - 1]:
                         fp_relative = os.path.join(rp, fp_relative)
-            fp = self._simulation_data.mfpath.resolve_path(
-                fp_relative, model_name
-            )
+            fp = self._simulation_data.mfpath.resolve_path(fp_relative)
         else:
             fp = os.path.join(
                 self._simulation_data.mfpath.get_sim_path(), fp_relative
@@ -1966,7 +1968,7 @@ class DataStorage:
         # load data from external file
         model_name = self.data_dimensions.package_dim.model_dim[0].model_name
         read_file = self._simulation_data.mfpath.resolve_path(
-            self.layer_storage[layer].fname, model_name
+            self.layer_storage[layer].fname
         )
         # currently support files containing ndarrays or recarrays
         if self.data_structure_type == DataStructureType.ndarray:
@@ -2426,7 +2428,7 @@ class DataStorage:
                     0
                 ].model_name
                 read_file = self._simulation_data.mfpath.resolve_path(
-                    self.layer_storage[layer].fname, ""
+                    self.layer_storage[layer].fname
                 )
 
                 if self.layer_storage[layer].binary:

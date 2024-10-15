@@ -1,5 +1,6 @@
 import inspect
 import sys
+import typing
 from operator import itemgetter
 
 from ...datbase import DataInterface, DataType
@@ -15,6 +16,9 @@ from ..mfbase import (
 )
 from .mfdatastorage import DataStructureType
 from .mfdatautil import to_string
+
+if typing.TYPE_CHECKING:
+    from ..mfsimbase import MFSimulationData
 
 
 class MFTransient:
@@ -225,7 +229,7 @@ class MFData(DataInterface):
 
     def __init__(
         self,
-        sim_data,
+        sim_data: "MFSimulationData",
         model_or_sim,
         structure,
         enable=True,
@@ -625,9 +629,7 @@ class MFMultiDimVar(MFData):
     ):
         file_mgmt = self._simulation_data.mfpath
         model_name = self.data_dimensions.package_dim.model_dim[0].model_name
-        ext_file_path = file_mgmt.get_updated_path(
-            fname, model_name, ext_file_action
-        )
+        ext_file_path = fname
         fname = datautil.clean_filename(ext_file_path)
         ext_format = ["OPEN/CLOSE", f"'{ext_file_path}'"]
         if data_type != DataStructureType.recarray:

@@ -832,7 +832,7 @@ def test_binary_read(function_tmpdir):
     data_size = nlay * nrow * ncol
     arr.shape = data_shape
 
-    sim_data = MFSimulationData("integration", None)
+    sim_data = MFSimulationData("integration")
     dstruct = MFDataItemStructure()
     dstruct.is_cellid = False
     dstruct.name = "fake"

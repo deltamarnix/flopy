@@ -1535,9 +1535,7 @@ class MFPandasList(mfdata.MFMultiDimVar, DataListInterface):
                 for i, rp in enumerate(rp_l_r):
                     if rp != fp_rp_l[len(rp_l_r) - i - 1]:
                         fp_relative = os.path.join(rp, fp_relative)
-            fp = self._simulation_data.mfpath.resolve_path(
-                fp_relative, model_name
-            )
+            fp = self._simulation_data.mfpath.resolve_path(fp_relative)
         else:
             if fp_relative is not None:
                 fp = os.path.join(
@@ -1846,9 +1844,7 @@ class MFPandasList(mfdata.MFMultiDimVar, DataListInterface):
                 for i, rp in enumerate(rp_l_r):
                     if rp != fp_rp_l[len(rp_l_r) - i - 1]:
                         fp_relative = os.path.join(rp, fp_relative)
-            return self._simulation_data.mfpath.resolve_path(
-                fp_relative, self._model_or_sim.name
-            )
+            return self._simulation_data.mfpath.resolve_path(fp_relative)
         else:
             return os.path.join(
                 self._simulation_data.mfpath.get_sim_path(), data_storage.fname
