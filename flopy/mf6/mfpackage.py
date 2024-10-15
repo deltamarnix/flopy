@@ -4,6 +4,7 @@ import errno
 import inspect
 import os
 import sys
+import typing
 import warnings
 
 import numpy as np
@@ -13,6 +14,7 @@ from ..pakbase import PackageInterface
 from ..utils import datautil
 from ..utils.check import mf6check
 from ..version import __version__
+from ._file_management import MFFileMgmt
 from .coordinates import modeldimensions
 from .data import (
     mfdata,
@@ -28,7 +30,6 @@ from .mfbase import (
     ExtFileAction,
     FlopyException,
     MFDataException,
-    MFFileMgmt,
     MFInvalidTransientBlockHeaderException,
     PackageContainer,
     PackageContainerType,
@@ -36,6 +37,9 @@ from .mfbase import (
     VerbosityLevel,
 )
 from .utils.output_util import MF6Output
+
+if typing.TYPE_CHECKING:
+    from .mfsimbase import MFSimulationData
 
 
 class MFBlockHeader:
@@ -356,7 +360,7 @@ class MFBlock:
 
     def __init__(
         self,
-        simulation_data,
+        simulation_data: "MFSimulationData",
         dimensions,
         structure,
         path,

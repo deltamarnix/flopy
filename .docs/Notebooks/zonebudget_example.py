@@ -336,7 +336,7 @@ cpth = workspace / "zbud6"
 cpth.mkdir()
 
 sim = flopy.mf6.MFSimulation.load(sim_ws=sim_ws, exe_name=mf6_exe)
-sim.simulation_data.mfpath.set_sim_path(cpth)
+sim.set_sim_path(cpth)
 sim.write_simulation()
 success, buff = sim.run_simulation(silent=True, report=True)
 assert success, "Failed to run"

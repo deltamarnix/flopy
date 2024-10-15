@@ -564,19 +564,12 @@ print(f"New ss values:\n{sto_package.ss.array}\n")
 
 # ## Modifying the Simulation Path
 #
-# The simulation path folder can be changed by using the set_sim_path method in the MFFileMgmt object. The MFFileMgmt object can be obtained from the simulation object through properties:
-#
-# ```python
-# sim.simulation_data.mfpath
-# ```
+# The simulation path folder can be changed by using the set_sim_path method in the sim object.
 
 save_folder = sim_path / "sim_modified"  # define path
 save_folder.mkdir(exist_ok=True)  # ensure path exists
 sim.set_sim_path(save_folder)  # change simulation path
-
-# The `sim_path` property is a shortcut for `simulation_data.mfpath.get_sim_path()`:
-
-assert sim.sim_path == sim.simulation_data.mfpath.get_sim_path()
+assert sim.sim_path == save_folder
 
 # ## Adding a Model Relative Path
 #

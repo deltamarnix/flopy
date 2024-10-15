@@ -9,6 +9,7 @@ from typing import Optional, Union, cast
 import numpy as np
 
 from flopy.mbase import run_model
+from flopy.mf6._file_management import MFFileMgmt
 from flopy.mf6.data import mfdata, mfdatalist, mfstructure
 from flopy.mf6.data.mfdatautil import MFComment
 from flopy.mf6.data.mfstructure import DatumType
@@ -16,7 +17,6 @@ from flopy.mf6.mfbase import (
     ExtFileAction,
     FlopyException,
     MFDataException,
-    MFFileMgmt,
     PackageContainer,
     PackageContainerType,
     VerbosityLevel,
@@ -238,7 +238,7 @@ class MFSimulationData:
 
     """
 
-    def __init__(self, path: Union[str, os.PathLike], mfsim):
+    def __init__(self, path: Union[str, os.PathLike]):
         # --- formatting variables ---
         self.indent_string = "  "
         self.constant_formatting = ["constant", ""]
@@ -263,7 +263,7 @@ class MFSimulationData:
         self._update_str_format()
 
         # --- file path ---
-        self.mfpath = MFFileMgmt(path, mfsim)
+        self.mfpath = MFFileMgmt(path)
 
         # --- ease of use variables to make working with modflow input and
         # output data easier --- model dimension class for each model
@@ -473,7 +473,7 @@ class MFSimulationBase:
         use_pandas=True,
     ):
         self.name = sim_name
-        self.simulation_data = MFSimulationData(sim_ws, self)
+        self.simulation_data = MFSimulationData(sim_ws)
         self.simulation_data.verbosity_level = self._resolve_verbosity_level(
             verbosity_level
         )
@@ -626,10 +626,9 @@ class MFSimulationBase:
         return self._get_data_str(False)
 
     def _get_data_str(self, formal):
-        file_mgt = self.simulation_data.mfpath
         data_str = (
             "sim_name = {}\nsim_path = {}\nexe_name = " "{}\n" "\n".format(
-                self.name, file_mgt.get_sim_path(), self.exe_name
+                self.name, self.sim_path, self.exe_name
             )
         )
 
@@ -1764,7 +1763,7 @@ class MFSimulationBase:
         self.set_all_data_internal()
 
         # set simulation path
-        self.simulation_data.mfpath.set_sim_path(path, True)
+        self.simulation_data.mfpath.set_sim_path(path)
 
         if not os.path.exists(path):
             # create new simulation folder
@@ -1829,7 +1828,7 @@ class MFSimulationBase:
         return run_model(
             self.exe_name,
             None,
-            self.simulation_data.mfpath.get_sim_path(),
+            self.sim_path,
             silent=silent,
             pause=pause,
             report=report,
