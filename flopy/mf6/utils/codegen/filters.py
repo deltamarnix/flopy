@@ -5,6 +5,8 @@ from typing import Any, List, Optional
 
 from jinja2 import pass_context
 
+from flopy.mf6.utils.codegen.context import Context
+
 
 def try_get_enum_value(v: Any) -> Any:
     """
@@ -16,7 +18,8 @@ def try_get_enum_value(v: Any) -> Any:
 
 class Filters:
     class Cls:
-        def base(ctx_name) -> str:
+        @staticmethod
+        def base(ctx_name: Context.Name) -> str:
             """Base class from which the input context should inherit."""
             _, r = ctx_name
             if ctx_name == ("sim", "nam"):
@@ -25,7 +28,8 @@ class Filters:
                 return "MFModel"
             return "MFPackage"
 
-        def title(ctx_name) -> str:
+        @staticmethod
+        def title(ctx_name: Context.Name) -> str:
             """
             The input context's unique title. This is not
             identical to `f"{l}{r}` in some cases, but it
@@ -45,7 +49,8 @@ class Filters:
                 return r
             return l + r
 
-        def description(ctx_name) -> str:
+        @staticmethod
+        def description(ctx_name: Context.Name) -> str:
             """A description of the input context."""
             l, r = ctx_name
             base = Filters.Cls.base(ctx_name)
@@ -61,13 +66,15 @@ class Filters:
                     " 6 model objects."
                 )
 
-        def prefix(ctx_name) -> str:
+        @staticmethod
+        def prefix(ctx_name: Context.Name) -> str:
             """The input context class name prefix, e.g. 'MF' or 'Modflow'."""
             base = Filters.Cls.base(ctx_name)
             return "MF" if base == "MFSimulationBase" else "Modflow"
 
+        @staticmethod
         @pass_context
-        def parent(ctx, ctx_name) -> str:
+        def parent(ctx, ctx_name: Context.Name) -> Optional[str]:
             """The input context's parent context type, if it can have a parent."""
             subpkg = ctx.get("subpackage", None)
             if subpkg:
@@ -82,8 +89,9 @@ class Filters:
                 return "simulation"
             return "model"
 
+        @staticmethod
         @pass_context
-        def skip_init(ctx, ctx_name) -> List[str]:
+        def skip_init(ctx, ctx_name: Context.Name) -> List[str]:
             """Variables to skip in input context's `__init__` method."""
             base = Filters.Cls.base(ctx_name)
             if base == "MFSimulationBase":
@@ -104,6 +112,7 @@ class Filters:
                 return []
 
     class Var:
+        @staticmethod
         def untag(var: dict) -> dict:
             """
             If the variable is a tagged record, remove the leading
@@ -140,6 +149,7 @@ class Filters:
             var["children"] = fields
             return var
 
+        @staticmethod
         def type(var: dict) -> str:
             """
             Get a readable representation of the variable's type.
@@ -171,6 +181,7 @@ class Filters:
             return var["type"]
 
     class Vars:
+        @staticmethod
         @pass_context
         def attrs(ctx, variables) -> List[str]:
             """
@@ -268,6 +279,7 @@ class Filters:
 
             return attrs
 
+        @staticmethod
         @pass_context
         def init(ctx, vars) -> List[str]:
             """
@@ -422,6 +434,7 @@ class Filters:
 
             return list(filter(None, _statements()))
 
+    @staticmethod
     def safe_name(name: str) -> str:
         """
         Make sure a string is safe to use as a variable name in Python code.
@@ -430,10 +443,12 @@ class Filters:
         """
         return (f"{name}_" if name in kwlist else name).replace("-", "_")
 
+    @staticmethod
     def escape_trailing_underscore(v: str) -> str:
         """If the string has a trailing underscore, escape it."""
         return f"{v[:-1]}\\\\_" if v.endswith("_") else v
 
+    @staticmethod
     def value(v: Any) -> str:
         """
         Format a value to appear in the RHS of an assignment or argument-

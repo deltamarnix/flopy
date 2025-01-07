@@ -81,7 +81,9 @@ def make_targets(dfn, outdir: PathLike, verbose: bool = False):
             if ctx_name.l == "exg":
                 return "exchange.py.jinja"
             return "package.py.jinja"
-        
+        else:
+            raise NotImplementedError(f"Unknown base class: {base}")
+
     for context in Context.from_dfn(dfn):
         name = context["name"]
         target_path = outdir / f"mf{Filters.Cls.title(name)}.py"
