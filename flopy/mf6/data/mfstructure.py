@@ -1,7 +1,5 @@
 """
 mfstructure module.  Contains classes related to package structure
-
-
 """
 
 import keyword
@@ -440,9 +438,6 @@ class MFDataItemStructure:
     name_list : list
         list of alternate names for the data item, includes data item's main
         name "name"
-    python_name : str
-        name of data item referenced in python, with illegal python characters
-        removed
     type : str
         type of the data item as it appears in the dfn file
     type_obj : python type
@@ -515,11 +510,10 @@ class MFDataItemStructure:
     contained_keywords = ["fname", "file", "tdis6"]
 
     def __init__(self):
-        self.block_name = None # can go
-        self.name = None # return variable name .lower()
-        self.display_name = None # return variable name .upper()
-        self.name_list = []
-        self.python_name = None
+        self.block_name = None  # can go
+        self.name = None  # return variable name .lower()
+        self.display_name = None  # return variable name .upper()
+        self.name_list = []  # used for keywords and "other names"
         self.type = None
         self.type_string = None
         self.type_obj = None
@@ -571,10 +565,6 @@ class MFDataItemStructure:
                     and self.type == DatumType.string
                 ):
                     self.possible_cellid = True
-                self.python_name = self.name.replace("-", "_").lower()
-                # don't allow name to be a python keyword
-                if keyword.iskeyword(self.name):
-                    self.python_name = f"{self.python_name}_"
             elif arr_line[0] == "other_names":
                 arr_names = " ".join(arr_line[1:]).lower().split(",")
                 for name in arr_names:
@@ -686,15 +676,15 @@ class MFDataItemStructure:
         if self.name.lower() in self.file_name_keywords:
             return True
         return any(key in self.name.lower() for key in self.file_name_key_seq)
-    
+
     @property
     def is_aux(self) -> bool:
         return self.name == "aux"
-    
+
     @property
     def is_boundname(self) -> bool:
         return self.name == "boundname"
-    
+
     @property
     def is_mname(self) -> bool:
         return self.name == "mname"
@@ -808,9 +798,6 @@ class MFDataStructure:
     name_list : list
         list of alternate names for the data, includes data item's main name
         "name"
-    python_name : str
-        name of data referenced in python, with illegal python characters
-        removed
     repeating : bool
         whether or not the data can repeat in the MF6 input file
     layered : bool
@@ -893,7 +880,6 @@ class MFDataStructure:
         self.name = data_item.name
         self.block_name = data_item.block_name
         self.name_list = data_item.name_list
-        self.python_name = data_item.python_name
         self.default_value = data_item.default_value
         self.repeating = False
         self.layered = (
@@ -916,7 +902,7 @@ class MFDataStructure:
         self.parameter_name = data_item.parameter_name
         self.one_per_pkg = data_item.one_per_pkg
 
-        self.data_item_structures : list[MFDataItemStructure] = []
+        self.data_item_structures: list[MFDataItemStructure] = []
         self.expected_data_items = {}
         self.shape = data_item.shape
         if (
@@ -1009,7 +995,7 @@ class MFDataStructure:
                 return True
         return False
 
-    def add_item(self, item, record=False, dfn_list=None):
+    def add_item(self, item: MFDataItemStructure, record=False, dfn_list=None):
         item_added = False
         if item.type != DatumType.recarray and (
             (item.type != DatumType.record and item.type != DatumType.repeating_record)
@@ -1038,11 +1024,10 @@ class MFDataStructure:
                             ".".format(self.name, item.name),
                             self.path,
                         )
-                    if isinstance(item, MFDataItemStructure):
-                        self.nam_file_data = (
-                            self.nam_file_data or item.file_nam_in_nam_file()
-                        )
-                        self.file_data = self.file_data or item.indicates_file_name()
+                    self.nam_file_data = (
+                        self.nam_file_data or item.file_nam_in_nam_file()
+                    )
+                    self.file_data = self.file_data or item.indicates_file_name()
                     # replace placeholder value
                     self.data_item_structures[location] = item
                     item_added = True
@@ -1172,34 +1157,6 @@ class MFDataStructure:
                 if data_item_structure.type != DatumType.keyword:
                     return False
         return True
-
-    def get_type_array(self, type_array):
-        for index, item in enumerate(self.data_item_structures):
-            if item.type == DatumType.record:
-                item.get_type_array(type_array)
-            else:
-                if self.display_item(index):
-                    type_array.append(
-                        (
-                            self,
-                            index,
-                            str(self._resolve_item_type(item)),
-                        )
-                    )
-
-    def _resolve_item_type(self, item):
-        item_type = item.type_string
-        first_nk_idx = self.first_non_keyword_index()
-        # single keyword is type boolean
-        if item_type == "keyword" and len(self.data_item_structures) == 1:
-            item_type = "boolean"
-        if item.is_cellid:
-            item_type = "(integer, ...)"
-        # two keywords
-        if len(self.data_item_structures) == 2 and first_nk_idx is None:
-            # keyword type is string
-            item_type = "string"
-        return item_type
 
     def display_item(self, item_num):
         item = self.data_item_structures[item_num]
