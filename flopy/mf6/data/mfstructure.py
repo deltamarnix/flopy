@@ -4,11 +4,9 @@ mfstructure module.  Contains classes related to package structure
 
 """
 
-import ast
 import keyword
 import os
 from enum import Enum
-from textwrap import TextWrapper
 
 import numpy as np
 
@@ -512,17 +510,14 @@ class MFDataItemStructure:
     --------
     """
 
+    file_name_keywords = ["filein", "fileout"]
+    file_name_key_seq = ["fname"]
+    contained_keywords = ["fname", "file", "tdis6"]
+
     def __init__(self):
-        self.file_name_keywords = {"filein": False, "fileout": False}
-        self.file_name_key_seq = {"fname": True}
-        self.contained_keywords = {"fname": True, "file": True, "tdis6": True}
-        self.block_name = None
-        self.name = None
-        self.display_name = None
-        self.name_length = None
-        self.is_aux = False
-        self.is_boundname = False
-        self.is_mname = False
+        self.block_name = None # can go
+        self.name = None # return variable name .lower()
+        self.display_name = None # return variable name .upper()
         self.name_list = []
         self.python_name = None
         self.type = None
@@ -580,14 +575,6 @@ class MFDataItemStructure:
                 # don't allow name to be a python keyword
                 if keyword.iskeyword(self.name):
                     self.python_name = f"{self.python_name}_"
-                # performance optimizations
-                if self.name == "aux":
-                    self.is_aux = True
-                if self.name == "boundname":
-                    self.is_boundname = True
-                if self.name[0:5] == "mname":
-                    self.is_mname = True
-                self.name_length = len(self.name)
             elif arr_line[0] == "other_names":
                 arr_names = " ".join(arr_line[1:]).lower().split(",")
                 for name in arr_names:
@@ -693,28 +680,24 @@ class MFDataItemStructure:
                 self.jagged_array = arr_line[1]
 
     def file_nam_in_nam_file(self):
-        for key, item in self.contained_keywords.items():
-            if self.name.lower().find(key) != -1:
-                return True
+        return any(self.name.lower().find(key) != -1 for key in self.contained_keywords)
 
     def indicates_file_name(self):
         if self.name.lower() in self.file_name_keywords:
             return True
-        for key in self.file_name_key_seq.keys():
-            if key in self.name.lower():
-                return True
-        return False
-
-    def is_file_name(self):
-        if (
-            self.name.lower() in self.file_name_keywords
-            and self.file_name_keywords[self.name.lower()] is True
-        ):
-            return True
-        for key, item in self.contained_keywords.items():
-            if self.name.lower().find(key) != -1 and item is True:
-                return True
-        return False
+        return any(key in self.name.lower() for key in self.file_name_key_seq)
+    
+    @property
+    def is_aux(self) -> bool:
+        return self.name == "aux"
+    
+    @property
+    def is_boundname(self) -> bool:
+        return self.name == "boundname"
+    
+    @property
+    def is_mname(self) -> bool:
+        return self.name == "mname"
 
     @staticmethod
     def remove_cellid(resolved_shape, cellid_size):
@@ -909,9 +892,6 @@ class MFDataStructure:
         self.optional = data_item.optional
         self.name = data_item.name
         self.block_name = data_item.block_name
-        self.name_length = len(self.name)
-        self.is_aux = data_item.is_aux
-        self.is_boundname = data_item.is_boundname
         self.name_list = data_item.name_list
         self.python_name = data_item.python_name
         self.default_value = data_item.default_value
@@ -936,7 +916,7 @@ class MFDataStructure:
         self.parameter_name = data_item.parameter_name
         self.one_per_pkg = data_item.one_per_pkg
 
-        self.data_item_structures = []
+        self.data_item_structures : list[MFDataItemStructure] = []
         self.expected_data_items = {}
         self.shape = data_item.shape
         if (
@@ -969,10 +949,7 @@ class MFDataStructure:
 
     @property
     def is_mname(self):
-        for item in self.data_item_structures:
-            if item.is_mname:
-                return True
-        return False
+        return any(item.is_mname for item in self.data_item_structures)
 
     def get_item(self, item_name):
         for item in self.data_item_structures:

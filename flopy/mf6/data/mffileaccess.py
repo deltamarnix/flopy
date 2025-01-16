@@ -1619,7 +1619,7 @@ class MFFileAccessList(MFFileAccess):
                     # package is part of a model
                     elif (
                         not data_item.optional
-                        or data_item.name[0:5] != "mname"
+                        or not data_item.is_mname
                         or not storage.in_model
                     ):
                         if data_item.type == DatumType.keyword:

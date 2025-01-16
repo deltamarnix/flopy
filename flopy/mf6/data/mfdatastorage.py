@@ -2691,8 +2691,7 @@ class DataStorage:
             # handle optional mnames
             if (
                 not data_item.optional
-                or len(data_item.name) < 5
-                or data_item.name.lower()[0:5] != "mname"
+                or not data_item.is_mname
                 or not self.in_model
             ):
                 overrides = self._data_type_overrides

@@ -972,7 +972,6 @@ class MFList(mfdata.MFMultiDimVar, DataListInterface):
                     or data_dim.package_dim.boundnames()
                 ) and (
                     not data_item.optional
-                    or data_item.name_length < 5
                     or not data_item.is_mname
                     or not storage.in_model
                 ):
