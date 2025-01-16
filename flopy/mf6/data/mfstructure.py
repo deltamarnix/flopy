@@ -46,8 +46,6 @@ class Dfn:
     ----------
     dfndir : path
         folder containing package definition files (dfn)
-    common : path
-        file containing common information
 
     Methods
     -------
@@ -68,7 +66,6 @@ class Dfn:
     def __init__(self):
         # directories
         self.dfndir = os.path.join(".", "dfn")
-        self.common = os.path.join(self.dfndir, "common.dfn")
 
     def get_file_list(self):
         file_order = [
@@ -111,20 +108,16 @@ class Dfn:
         # construct list of dfn files to process in the order of file_order
         files = os.listdir(dfn_path)
         for f in files:
-            if "common" in f or "flopy" in f:
+            if "flopy" in f:
                 continue
             package_abbr = os.path.splitext(f)[0]
             if package_abbr not in file_order:
                 file_order.append(package_abbr)
-        return [
-            f"{fname}.dfn" for fname in file_order if f"{fname}.dfn" in files
-        ]
+        return [f"{fname}.dfn" for fname in file_order if f"{fname}.dfn" in files]
 
     def _file_type(self, file_name):
         # determine file type
-        if len(file_name) >= 6 and file_name[0:6] == "common":
-            return DfnType.common, None
-        elif file_name[0:3] == "sim":
+        if file_name[0:3] == "sim":
             if file_name[3:6] == "nam":
                 return DfnType.sim_name_file, None
             elif file_name[3:7] == "tdis":
@@ -167,7 +160,7 @@ class DfnPackage(Dfn):
 
     Methods
     -------
-    get_block_structure_dict : (path : tuple, common : bool, model_file :
+    get_block_structure_dict : (path : tuple, model_file :
             bool) : dict
         returns a dictionary of block structure information for the package
 
@@ -198,7 +191,7 @@ class DfnPackage(Dfn):
         )
         self.dfn_list = package.dfn
 
-    def get_block_structure_dict(self, path, common, model_file, block_parent):
+    def get_block_structure_dict(self, path, model_file, block_parent):
         block_dict = {}
         dataset_items_in_block = {}
         self.dataset_items_needed_dict = {}
@@ -217,7 +210,7 @@ class DfnPackage(Dfn):
             # load next data item
             new_data_item_struct = MFDataItemStructure()
             for next_line in dfn_entry:
-                new_data_item_struct.set_value(next_line, common)
+                new_data_item_struct.set_value(next_line)
             # if block does not exist
             if (
                 current_block is None
@@ -239,11 +232,7 @@ class DfnPackage(Dfn):
             # resolve block type
             if len(current_block.block_header_structure) > 0:
                 if (
-                    len(
-                        current_block.block_header_structure[
-                            0
-                        ].data_item_structures
-                    )
+                    len(current_block.block_header_structure[0].data_item_structures)
                     > 0
                     and current_block.block_header_structure[0]
                     .data_item_structures[0]
@@ -267,16 +256,12 @@ class DfnPackage(Dfn):
                 self._process_needed_data_items(
                     block_dataset_struct, dataset_items_in_block
                 )
-                block_dataset_struct.set_path(
-                    path + (new_data_item_struct.block_name,)
-                )
+                block_dataset_struct.set_path(path + (new_data_item_struct.block_name,))
                 block_dataset_struct.add_item(new_data_item_struct)
                 current_block.add_dataset(block_dataset_struct)
             else:
                 new_data_item_struct.block_type = block_type
-                dataset_items_in_block[new_data_item_struct.name] = (
-                    new_data_item_struct
-                )
+                dataset_items_in_block[new_data_item_struct.name] = new_data_item_struct
 
                 # if data item belongs to existing dataset(s)
                 item_location_found = False
@@ -297,16 +282,12 @@ class DfnPackage(Dfn):
                     for dataset in self.dataset_items_needed_dict[
                         new_data_item_struct.name
                     ]:
-                        item_added = dataset.add_item(
-                            new_data_item_struct, record=True
-                        )
+                        item_added = dataset.add_item(new_data_item_struct, record=True)
                         item_location_found = item_location_found or item_added
                 # if data item belongs to an existing keystring
                 if new_data_item_struct.name in keystring_items_needed_dict:
                     new_data_item_struct.set_path(
-                        keystring_items_needed_dict[
-                            new_data_item_struct.name
-                        ].path
+                        keystring_items_needed_dict[new_data_item_struct.name].path
                     )
                     if new_data_item_struct.type == DatumType.record:
                         # record within a keystring - create a data set in
@@ -321,9 +302,7 @@ class DfnPackage(Dfn):
                         )
                     keystring_items_needed_dict[
                         new_data_item_struct.name
-                    ].keystring_dict[
-                        new_data_item_struct.name
-                    ] = new_data_item_struct
+                    ].keystring_dict[new_data_item_struct.name] = new_data_item_struct
                     item_location_found = True
 
                 if new_data_item_struct.type == DatumType.keystring:
@@ -353,11 +332,6 @@ class DfnPackage(Dfn):
                         block_data_item_struct.name = "order_num"
                         block_data_item_struct.data_items = ["order_num"]
                         block_data_item_struct.type = DatumType.integer
-                        block_data_item_struct.longname = "order_num"
-                        block_data_item_struct.description = (
-                            "internal variable to keep track of "
-                            "solution group number"
-                        )
                         block_dataset_struct = MFDataStructure(
                             block_data_item_struct,
                             model_file,
@@ -384,12 +358,8 @@ class DfnPackage(Dfn):
         current_dataset_struct = MFDataStructure(
             new_data_item_struct, model_file, self.package_type, self.dfn_list
         )
-        current_dataset_struct.set_path(
-            path + (new_data_item_struct.block_name,)
-        )
-        self._process_needed_data_items(
-            current_dataset_struct, dataset_items_in_block
-        )
+        current_dataset_struct.set_path(path + (new_data_item_struct.block_name,))
+        self._process_needed_data_items(current_dataset_struct, dataset_items_in_block)
         if add_to_block:
             # add dataset
             current_block.add_dataset(current_dataset_struct)
@@ -406,18 +376,14 @@ class DfnPackage(Dfn):
             val,
         ) in current_dataset_struct.expected_data_items.items():
             if item_name in dataset_items_in_block:
-                current_dataset_struct.add_item(
-                    dataset_items_in_block[item_name]
-                )
+                current_dataset_struct.add_item(dataset_items_in_block[item_name])
             else:
                 if item_name in self.dataset_items_needed_dict:
                     self.dataset_items_needed_dict[item_name].append(
                         current_dataset_struct
                     )
                 else:
-                    self.dataset_items_needed_dict[item_name] = [
-                        current_dataset_struct
-                    ]
+                    self.dataset_items_needed_dict[item_name] = [current_dataset_struct]
 
 
 class DataType(Enum):
@@ -506,10 +472,6 @@ class MFDataItemStructure:
     optional : bool
         whether data item is optional or required as part of the MFData in the
         MF6 input file
-    longname : str
-        long name of the data item
-    description : str
-        description of the data item
     path : tuple
         a tuple describing the data item's location within the simulation
         (<model>,<package>,<block>,<data>)
@@ -575,8 +537,6 @@ class MFDataItemStructure:
         self.layer_dims = ["nlay"]
         self.reader = None
         self.optional = False
-        self.longname = None
-        self.description = ""
         self.path = None
         self.repeating = False
         self.block_variable = False
@@ -595,7 +555,7 @@ class MFDataItemStructure:
         self.one_per_pkg = False
         self.jagged_array = None
 
-    def set_value(self, line, common):
+    def set_value(self, line):
         arr_line = line.strip().split()
         if len(arr_line) > 1:
             if arr_line[0] == "block":
@@ -640,9 +600,9 @@ class MFDataItemStructure:
                 type_line = arr_line[1:]
                 if len(type_line) <= 0:
                     raise StructException(
-                        'Data structure "{}" does not have '
-                        "a type specified"
-                        ".".format(self.name),
+                        'Data structure "{}" does not have a type specified.'.format(
+                            self.name
+                        ),
                         self.path,
                     )
                 self.type_string = type_line[0].lower()
@@ -703,46 +663,6 @@ class MFDataItemStructure:
                 self.reader = " ".join(arr_line[1:])
             elif arr_line[0] == "optional":
                 self.optional = self._get_boolean_val(arr_line)
-            elif arr_line[0] == "longname":
-                self.longname = " ".join(arr_line[1:])
-            elif arr_line[0] == "description":
-                if arr_line[1] == "REPLACE":
-                    self.description = self._resolve_common(arr_line, common)
-                elif len(arr_line) > 1 and arr_line[1].strip():
-                    self.description = " ".join(arr_line[1:])
-
-                # clean self.description
-                replace_pairs = [
-                    ("``", '"'),  # double quotes
-                    ("''", '"'),
-                    ("`", "'"),  # single quotes
-                    ("~", " "),  # non-breaking space
-                    (r"\mf", "MODFLOW 6"),
-                    (r"\citep{konikow2009}", "(Konikow et al., 2009)"),
-                    (r"\citep{hill1990preconditioned}", "(Hill, 1990)"),
-                    (r"\ref{table:ftype}", "in mf6io.pdf"),
-                    (r"\ref{table:gwf-obstypetable}", "in mf6io.pdf"),
-                ]
-                for s1, s2 in replace_pairs:
-                    if s1 in self.description:
-                        self.description = self.description.replace(s1, s2)
-
-                # massage latex equations
-                self.description = self.description.replace("$<$", "<")
-                self.description = self.description.replace("$>$", ">")
-                if "$" in self.description:
-                    descsplit = self.description.split("$")
-                    mylist = [
-                        i.replace("\\", "")
-                        + ":math:`"
-                        + j.replace("\\", "\\\\")
-                        + "`"
-                        for i, j in zip(descsplit[::2], descsplit[1::2])
-                    ]
-                    mylist.append(descsplit[-1].replace("\\", ""))
-                    self.description = "".join(mylist)
-                else:
-                    self.description = self.description.replace("\\", "")
             elif arr_line[0] == "block_variable":
                 if len(arr_line) > 1:
                     self.block_variable = bool(arr_line[1])
@@ -772,57 +692,6 @@ class MFDataItemStructure:
             elif arr_line[0] == "jagged_array":
                 self.jagged_array = arr_line[1]
 
-    def get_type_string(self):
-        return f"[{self.type_string}]"
-
-    def get_description(self, line_size, initial_indent, level_indent):
-        item_desc = f"* {self.name} ({self.type_string}) {self.description}"
-        if self.numeric_index or self.is_cellid:
-            # append zero-based index text
-            item_desc = f"{item_desc} {numeric_index_text}"
-        twr = TextWrapper(
-            width=line_size,
-            initial_indent=initial_indent,
-            drop_whitespace=True,
-            subsequent_indent=f"  {initial_indent}",
-        )
-        item_desc = "\n".join(twr.wrap(item_desc))
-        return item_desc
-
-    def get_doc_string(self, line_size, initial_indent, level_indent):
-        description = self.get_description(
-            line_size, initial_indent + level_indent, level_indent
-        )
-        param_doc_string = f"{self.python_name} : {self.get_type_string()}"
-        twr = TextWrapper(
-            width=line_size,
-            initial_indent=initial_indent,
-            subsequent_indent=f"  {initial_indent}",
-            drop_whitespace=True,
-        )
-        param_doc_string = "\n".join(twr.wrap(param_doc_string))
-        param_doc_string = f"{param_doc_string}\n{description}"
-        return param_doc_string
-
-    def get_keystring_desc(self, line_size, initial_indent, level_indent):
-        if self.type != DatumType.keystring:
-            raise StructException(
-                f'Can not get keystring description for "{self.name}" '
-                "because it is not a keystring",
-                self.path,
-            )
-
-        # get description of keystring elements
-        description = ""
-        for key, item in self.keystring_dict.items():
-            if description:
-                description = f"{description}\n"
-            description = "{}{}".format(
-                description,
-                item.get_doc_string(line_size, initial_indent, level_indent),
-            )
-        return description
-
     def file_nam_in_nam_file(self):
         for key, item in self.contained_keywords.items():
             if self.name.lower().find(key) != -1:
@@ -850,9 +719,7 @@ class MFDataItemStructure:
     @staticmethod
     def remove_cellid(resolved_shape, cellid_size):
         # remove the cellid size from the shape
-        for dimension, index in zip(
-            resolved_shape, range(0, len(resolved_shape))
-        ):
+        for dimension, index in zip(resolved_shape, range(0, len(resolved_shape))):
             if dimension == cellid_size:
                 resolved_shape[index] = 1
                 break
@@ -872,33 +739,6 @@ class MFDataItemStructure:
             if len(word) > 0 and word[-1] == "}":
                 return index
         return None
-
-    @staticmethod
-    def _resolve_common(arr_line, common):
-        if common is None:
-            return arr_line
-        if not (arr_line[2] in common and len(arr_line) >= 4):
-            raise StructException(
-                f'Could not find line "{arr_line}" in common dfn.'
-            )
-        close_bracket_loc = MFDataItemStructure._find_close_bracket(
-            arr_line[2:]
-        )
-        resolved_str = common[arr_line[2]]
-        if close_bracket_loc is None:
-            find_replace_str = " ".join(arr_line[3:])
-        else:
-            close_bracket_loc += 3
-            find_replace_str = " ".join(arr_line[3:close_bracket_loc])
-        find_replace_dict = ast.literal_eval(find_replace_str)
-        for find_str, replace_str in find_replace_dict.items():
-            resolved_str = resolved_str.replace(find_str, replace_str)
-        # clean up formatting
-        resolved_str = resolved_str.replace("\\texttt", "")
-        resolved_str = resolved_str.replace("{", "")
-        resolved_str = resolved_str.replace("}", "")
-
-        return resolved_str
 
     def set_path(self, path):
         self.path = path + (self.name,)
@@ -929,8 +769,7 @@ class MFDataItemStructure:
         elif type_string.lower() == "integer":
             return DatumType.integer
         elif (
-            type_string.lower() == "double_precision"
-            or type_string.lower() == "double"
+            type_string.lower() == "double_precision" or type_string.lower() == "double"
         ):
             return DatumType.double_precision
         elif type_string.lower() == "string":
@@ -989,8 +828,6 @@ class MFDataStructure:
     python_name : str
         name of data referenced in python, with illegal python characters
         removed
-    longname : str
-        long name of the data
     repeating : bool
         whether or not the data can repeat in the MF6 input file
     layered : bool
@@ -1042,10 +879,6 @@ class MFDataStructure:
         MFDataStructure
     all_keywords : () : bool
         returns true of all data items are keywords
-    get_type_string : () : str
-        returns descriptive string of the data types in this MFDataStructure
-    get_description : () : str
-        returns a description of the data
     get_type_array : (type_array : list):
         builds an array of data type information in type_array
     get_datum_type : (numpy_type : bool):
@@ -1081,7 +914,6 @@ class MFDataStructure:
         self.is_boundname = data_item.is_boundname
         self.name_list = data_item.name_list
         self.python_name = data_item.python_name
-        self.longname = data_item.longname
         self.default_value = data_item.default_value
         self.repeating = False
         self.layered = (
@@ -1114,13 +946,9 @@ class MFDataStructure:
         ):
             # record expected data for later error checking
             for data_item_name in data_item.data_items:
-                self.expected_data_items[data_item_name] = len(
-                    self.expected_data_items
-                )
+                self.expected_data_items[data_item_name] = len(self.expected_data_items)
         else:
-            self.expected_data_items[data_item.name] = len(
-                self.expected_data_items
-            )
+            self.expected_data_items[data_item.name] = len(self.expected_data_items)
 
     @property
     def basic_item(self):
@@ -1130,17 +958,11 @@ class MFDataStructure:
             if (
                 (
                     (item.repeating or item.optional)
-                    and not (
-                        item.is_cellid or item.is_aux or item.is_boundname
-                    )
+                    and not (item.is_cellid or item.is_aux or item.is_boundname)
                 )
                 or item.jagged_array is not None
                 or item.type == DatumType.keystring
                 or item.type == DatumType.keyword
-                or (
-                    item.description is not None
-                    and "keyword `NONE'" in item.description
-                )
             ):
                 return False
         return True
@@ -1194,9 +1016,7 @@ class MFDataStructure:
                                 new_keywords.append((valid_value,))
                             else:
                                 for keyword_tuple in keywords:
-                                    new_keywords.append(
-                                        keyword_tuple + (valid_value,)
-                                    )
+                                    new_keywords.append(keyword_tuple + (valid_value,))
                         keywords = new_keywords
                     else:
                         for name in data_item_struct.name_list:
@@ -1215,10 +1035,7 @@ class MFDataStructure:
     def add_item(self, item, record=False, dfn_list=None):
         item_added = False
         if item.type != DatumType.recarray and (
-            (
-                item.type != DatumType.record
-                and item.type != DatumType.repeating_record
-            )
+            (item.type != DatumType.record and item.type != DatumType.repeating_record)
             or record is True
         ):
             if item.name not in self.expected_data_items:
@@ -1248,25 +1065,19 @@ class MFDataStructure:
                         self.nam_file_data = (
                             self.nam_file_data or item.file_nam_in_nam_file()
                         )
-                        self.file_data = (
-                            self.file_data or item.indicates_file_name()
-                        )
+                        self.file_data = self.file_data or item.indicates_file_name()
                     # replace placeholder value
                     self.data_item_structures[location] = item
                     item_added = True
             else:
-                for index in range(
-                    0, location - len(self.data_item_structures)
-                ):
+                for index in range(0, location - len(self.data_item_structures)):
                     # insert placeholder in array
                     self.data_item_structures.append(None)
                 if isinstance(item, MFDataItemStructure):
                     self.nam_file_data = (
                         self.nam_file_data or item.file_nam_in_nam_file()
                     )
-                    self.file_data = (
-                        self.file_data or item.indicates_file_name()
-                    )
+                    self.file_data = self.file_data or item.indicates_file_name()
                 self.data_item_structures.append(item)
                 item_added = True
             self.optional = self.optional and item.optional
@@ -1299,18 +1110,10 @@ class MFDataStructure:
                     return DataType.list_multiple
             else:
                 return DataType.list
-        if (
-            self.type == DatumType.record
-            or self.type == DatumType.repeating_record
-        ):
+        if self.type == DatumType.record or self.type == DatumType.repeating_record:
             record_size, repeating_data_item = self.get_record_size()
-            if (
-                record_size >= 1 and not self.all_keywords()
-            ) or repeating_data_item:
-                if (
-                    self.block_type != BlockType.single
-                    and not self.block_variable
-                ):
+            if (record_size >= 1 and not self.all_keywords()) or repeating_data_item:
+                if self.block_type != BlockType.single and not self.block_variable:
                     if self.block_type == BlockType.transient:
                         return DataType.list_transient
                     else:
@@ -1318,10 +1121,7 @@ class MFDataStructure:
                 else:
                     return DataType.list
             else:
-                if (
-                    self.block_type != BlockType.single
-                    and not self.block_variable
-                ):
+                if self.block_type != BlockType.single and not self.block_variable:
                     return DataType.scalar_transient
                 else:
                     return DataType.scalar
@@ -1395,126 +1195,6 @@ class MFDataStructure:
                 if data_item_structure.type != DatumType.keyword:
                     return False
         return True
-
-    def get_type_string(self):
-        type_array = []
-        self.get_docstring_type_array(type_array)
-        type_string = ", ".join(type_array)
-        type_header = ""
-        type_footer = ""
-        if (
-            len(self.data_item_structures) > 1
-            or self.data_item_structures[0].repeating
-        ):
-            type_header = "["
-            type_footer = "]"
-            if self.repeating:
-                type_footer = f"] ... [{type_string}]"
-
-        return f"{type_header}{type_string}{type_footer}"
-
-    def get_docstring_type_array(self, type_array):
-        for index, item in enumerate(self.data_item_structures):
-            if item.type == DatumType.record:
-                item.get_docstring_type_array(type_array)
-            else:
-                if self.display_item(index):
-                    if (
-                        self.type == DatumType.recarray
-                        or self.type == DatumType.record
-                        or self.type == DatumType.repeating_record
-                    ):
-                        type_array.append(str(item.name))
-                    else:
-                        type_array.append(str(self._resolve_item_type(item)))
-
-    def get_description(
-        self, line_size=79, initial_indent="        ", level_indent="    "
-    ):
-        type_array = []
-        self.get_type_array(type_array)
-        description = ""
-        for datastr, index, itype in type_array:
-            item = datastr.data_item_structures[index]
-            if item is None:
-                continue
-            if item.type == DatumType.record:
-                item_desc = item.get_description(
-                    line_size, initial_indent + level_indent, level_indent
-                )
-                description = f"{description}\n{item_desc}"
-            elif datastr.display_item(index):
-                if len(description.strip()) > 0:
-                    description = f"{description}\n"
-                item_desc = item.description
-                if item.numeric_index or item.is_cellid:
-                    # append zero-based index text
-                    item_desc = f"{item_desc} {numeric_index_text}"
-
-                item_desc = f"* {item.name} ({itype}) {item_desc}"
-                twr = TextWrapper(
-                    width=line_size,
-                    initial_indent=initial_indent,
-                    subsequent_indent=f"  {initial_indent}",
-                )
-                item_desc = "\n".join(twr.wrap(item_desc))
-                description = f"{description}{item_desc}"
-                if item.type == DatumType.keystring:
-                    keystr_desc = item.get_keystring_desc(
-                        line_size, initial_indent + level_indent, level_indent
-                    )
-                    description = f"{description}\n{keystr_desc}"
-        return description
-
-    def get_subpackage_description(
-        self, line_size=79, initial_indent="        ", level_indent="    "
-    ):
-        item_desc = (
-            "* Contains data for the {} package. Data can be "
-            "stored in a dictionary containing data for the {} "
-            "package with variable names as keys and package data as "
-            "values. Data just for the {} variable is also "
-            "acceptable. See {} package documentation for more "
-            "information"
-            ".".format(
-                self.construct_package,
-                self.construct_package,
-                self.parameter_name,
-                self.construct_package,
-            )
-        )
-        twr = TextWrapper(
-            width=line_size,
-            initial_indent=initial_indent,
-            subsequent_indent=f"  {initial_indent}",
-        )
-        return "\n".join(twr.wrap(item_desc))
-
-    def get_doc_string(
-        self, line_size=79, initial_indent="    ", level_indent="    "
-    ):
-        if self.parameter_name is not None:
-            description = self.get_subpackage_description(
-                line_size, initial_indent + level_indent, level_indent
-            )
-            var_name = self.parameter_name
-            type_name = f"{{varname:data}} or {self.construct_data} data"
-        else:
-            description = self.get_description(
-                line_size, initial_indent + level_indent, level_indent
-            )
-            var_name = self.python_name
-            type_name = self.get_type_string()
-
-        param_doc_string = f"{var_name} : {type_name}"
-        twr = TextWrapper(
-            width=line_size,
-            initial_indent=initial_indent,
-            subsequent_indent=f"  {initial_indent}",
-        )
-        param_doc_string = "\n".join(twr.wrap(param_doc_string))
-        param_doc_string = f"{param_doc_string}\n{description}"
-        return param_doc_string
 
     def get_type_array(self, type_array):
         for index, item in enumerate(self.data_item_structures):
@@ -1745,8 +1425,6 @@ class MFInputFileStructure:
     path : tuple
         path defining the location of the container of this input file
         structure within the overall simulation structure
-    common : bool
-        is this the common dfn file
     model_file : bool
         this file belongs to a specific model type
 
@@ -1779,20 +1457,18 @@ class MFInputFileStructure:
 
     """
 
-    def __init__(self, dfn_file, path, common, model_file):
+    def __init__(self, dfn_file, path, model_file):
         # initialize
         self.file_type = dfn_file.package_type
         self.file_prefix = dfn_file.package_prefix
         self.dfn_type = dfn_file.dfn_type
         self.dfn_file_name = dfn_file.dfn_file_name
-        self.description = ""
         self.path = path + (self.file_type,)
         self.model_file = model_file  # file belongs to a specific model
         self.read_as_arrays = False
 
         self.blocks, self.header = dfn_file.get_block_structure_dict(
             self.path,
-            common,
             model_file,
             self,
         )
@@ -1889,14 +1565,14 @@ class MFModelStructure:
         self.package_struct_objs = {}
         self.utl_struct_objs = utl_struct_objs
 
-    def add_namefile(self, dfn_file, common):
+    def add_namefile(self, dfn_file):
         self.name_file_struct_obj = MFInputFileStructure(
-            dfn_file, (self.model_type,), common, True
+            dfn_file, (self.model_type,), True
         )
 
-    def add_package(self, dfn_file, common):
+    def add_package(self, dfn_file):
         self.package_struct_objs[dfn_file.package_type] = MFInputFileStructure(
-            dfn_file, (self.model_type,), common, True
+            dfn_file, (self.model_type,), True
         )
 
     def get_package_struct(self, package_type):
@@ -1916,9 +1592,7 @@ class MFModelStructure:
     def get_data_structure(self, path):
         if path[0] in self.package_struct_objs:
             if len(path) > 1:
-                return self.package_struct_objs[path[0]].get_data_structure(
-                    path[1:]
-                )
+                return self.package_struct_objs[path[0]].get_data_structure(path[1:])
             else:
                 return self.package_struct_objs[path[0]]
         elif path[0] == "nam":
@@ -1948,8 +1622,6 @@ class MFSimulationStructure:
         describes the structure of the supported model types
     utl_struct_objs : dict
         describes the structure of the supported utility packages
-    common : dict
-        common file information
     model_type : string
         placeholder
 
@@ -1964,8 +1636,6 @@ class MFSimulationStructure:
         Adds a utility package structure object to the simulation
     add_package(dfn_file : DfnFile, model_file=True : bool)
         Adds a package structure object to the simulation
-    store_common(dfn_file : DfnFile)
-        Stores the contents of the common dfn file
     add_model(model_type : string)
         Adds a model structure object to the simulation
     is_valid() : bool
@@ -1993,7 +1663,6 @@ class MFSimulationStructure:
         self.package_struct_objs = {}
         self.utl_struct_objs = {}
         self.model_struct_objs = {}
-        self.common = None
         self.model_type = ""
 
     @property
@@ -2004,9 +1673,7 @@ class MFSimulationStructure:
         return model_type_list
 
     def process_dfn(self, dfn_file):
-        if dfn_file.dfn_type == DfnType.common:
-            self.store_common(dfn_file)
-        elif dfn_file.dfn_type == DfnType.sim_name_file:
+        if dfn_file.dfn_type == DfnType.sim_name_file:
             self.add_namefile(dfn_file, False)
         elif (
             dfn_file.dfn_type == DfnType.sim_tdis_file
@@ -2027,9 +1694,7 @@ class MFSimulationStructure:
             if model_ver not in self.model_struct_objs:
                 self.add_model(model_ver)
             if dfn_file.dfn_type == DfnType.model_file:
-                self.model_struct_objs[model_ver].add_package(
-                    dfn_file, self.common
-                )
+                self.model_struct_objs[model_ver].add_package(dfn_file)
             elif (
                 dfn_file.dfn_type == DfnType.gnc_file
                 or dfn_file.dfn_type == DfnType.mvr_file
@@ -2037,33 +1702,23 @@ class MFSimulationStructure:
             ):
                 # gnc and mvr files belong both on the simulation and model
                 # level
-                self.model_struct_objs[model_ver].add_package(
-                    dfn_file, self.common
-                )
+                self.model_struct_objs[model_ver].add_package(dfn_file)
                 self.add_package(dfn_file, False)
             else:
-                self.model_struct_objs[model_ver].add_namefile(
-                    dfn_file, self.common
-                )
+                self.model_struct_objs[model_ver].add_namefile(dfn_file)
 
     def add_namefile(self, dfn_file, model_file=True):
-        self.name_file_struct_obj = MFInputFileStructure(
-            dfn_file, (), self.common, model_file
-        )
+        self.name_file_struct_obj = MFInputFileStructure(dfn_file, (), model_file)
 
     def add_util(self, dfn_file):
         self.utl_struct_objs[dfn_file.package_type] = MFInputFileStructure(
-            dfn_file, (), self.common, True
+            dfn_file, (), True
         )
 
     def add_package(self, dfn_file, model_file=True):
         self.package_struct_objs[dfn_file.package_type] = MFInputFileStructure(
-            dfn_file, (), self.common, model_file
+            dfn_file, (), model_file
         )
-
-    def store_common(self, dfn_file):
-        # store common stuff
-        self.common = dfn_file.dict_by_name()
 
     def add_model(self, model_type):
         self.model_struct_objs[model_type] = MFModelStructure(
@@ -2081,23 +1736,17 @@ class MFSimulationStructure:
     def get_data_structure(self, path):
         if path[0] in self.package_struct_objs:
             if len(path) > 1:
-                return self.package_struct_objs[path[0]].get_data_structure(
-                    path[1:]
-                )
+                return self.package_struct_objs[path[0]].get_data_structure(path[1:])
             else:
                 return self.package_struct_objs[path[0]]
         elif path[0] in self.model_struct_objs:
             if len(path) > 1:
-                return self.model_struct_objs[path[0]].get_data_structure(
-                    path[1:]
-                )
+                return self.model_struct_objs[path[0]].get_data_structure(path[1:])
             else:
                 return self.model_struct_objs[path[0]]
         elif path[0] in self.utl_struct_objs:
             if len(path) > 1:
-                return self.utl_struct_objs[path[0]].get_data_structure(
-                    path[1:]
-                )
+                return self.utl_struct_objs[path[0]].get_data_structure(path[1:])
             else:
                 return self.utl_struct_objs[path[0]]
         elif path[0] == "nam":
@@ -2117,10 +1766,7 @@ class MFSimulationStructure:
                 key,
                 package_struct,
             ) in model_struct.package_struct_objs.items():
-                if (
-                    key[0:-1] in model_struct.package_struct_objs
-                    and key[-1] == "a"
-                ):
+                if key[0:-1] in model_struct.package_struct_objs and key[-1] == "a":
                     package_struct.read_as_arrays = True
 
 
@@ -2162,7 +1808,7 @@ class MFStructure:
 
     def get_version_string(self):
         return format(str(self.mf_version))
-    
+
     def _load_structure(self):
         # set up structure classes
         self.sim_struct = MFSimulationStructure()
@@ -2175,14 +1821,10 @@ class MFStructure:
         for package in MFPackage.__subclasses__():
             # process header
             for entry in package.dfn[0][1:]:
-                if (
-                    isinstance(entry, list)
-                    and entry[0] == "solution_package"
-                ):
+                if isinstance(entry, list) and entry[0] == "solution_package":
                     MFStructure().flopy_dict["solution_packages"][
                         package.package_abbr
                     ] = entry[1:]
             # process each package
             self.sim_struct.process_dfn(DfnPackage(package))
         self.sim_struct.tag_read_as_arrays()
-

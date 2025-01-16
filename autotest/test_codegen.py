@@ -20,11 +20,7 @@ def pytest_generate_tests(metafunc):
 
     convert(DFN_PATH, TOML_PATH)
     dfns = list(DFN_PATH.glob("*.dfn"))
-    assert all(
-        (TOML_PATH / f"{dfn.stem}.toml").is_file()
-        for dfn in dfns
-        if "common" not in dfn.stem
-    )
+    assert all((TOML_PATH / f"{dfn.stem}.toml").is_file() for dfn in dfns)
 
 
 @pytest.mark.parametrize("version,dfn_path", [(1, DFN_PATH), (2, TOML_PATH)])
